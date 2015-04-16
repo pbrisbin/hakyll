@@ -1,5 +1,6 @@
 --------------------------------------------------------------------------------
 -- | Module exporting convenient pandoc bindings
+{-# LANGUAGE CPP #-}
 module Hakyll.Web.Pandoc
     ( -- * The basic building blocks
       readPandoc
@@ -46,7 +47,14 @@ readPandoc = readPandocWith defaultHakyllReaderOptions
 readPandocWith :: ReaderOptions  -- ^ Parser options
                -> Item String    -- ^ String to read
                -> Item Pandoc    -- ^ Resulting document
-readPandocWith ropt item = fmap (reader ropt (itemFileType item)) item
+readPandocWith ropt item =
+    let convert = reader ropt (itemFileType item)
+#if MIN_VERSION_pandoc(1,14,0)
+    in fmap (either (error . show) id . convert) item
+#else
+    in fmap convert item
+#endif
+
   where
     reader ro t = case t of
         DocBook            -> readDocBook ro
